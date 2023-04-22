@@ -22,8 +22,16 @@ namespace Assets.Editor
             this.AddManipulator(new SelectionDragger());
             this.AddManipulator(new RectangleSelector());
 
-            var styleSheet = AssetDatabase.LoadAssetAtPath<StyleSheet>("Assets/Editor/BehaviourTreeEditor.uss");
+            var styleSheet = AssetDatabase.LoadAssetAtPath<StyleSheet>("Assets/UiBuilder/BehaviourTreeEditor.uss");
             styleSheets.Add(styleSheet);
+
+            Undo.undoRedoPerformed += OnUndoRedo;
+        }
+
+        private void OnUndoRedo()
+        {
+            PopulateView(tree);
+            AssetDatabase.SaveAssets();
         }
 
         private NodeView FindNodeView(Node node)
@@ -45,6 +53,7 @@ namespace Assets.Editor
             if (tree.rootNode == null)
             {
                 tree.rootNode = tree.CreateNode(typeof(RootNode)) as RootNode;
+                CreateNodeView(tree.rootNode);
                 EditorUtility.SetDirty(tree);
                 AssetDatabase.SaveAssets();
             }
@@ -56,14 +65,13 @@ namespace Assets.Editor
                 children.ForEach(c =>
                 {
                     NodeView parentView = FindNodeView(n);
-                    NodeView childeView = FindNodeView(c);
+                    NodeView childView = FindNodeView(c);
 
-                    Edge edge = parentView.output.ConnectTo(childeView.input);
+                    Edge edge = parentView.output.ConnectTo(childView.input);
                     AddElement(edge);
                 });
             });
 
-            tree.nodes.ForEach(CreateNodeView);
         }
 
         public override List<Port> GetCompatiblePorts(Port startPort, NodeAdapter nodeAdapter)
@@ -100,6 +108,15 @@ namespace Assets.Editor
                     NodeView parentView = edge.output.node as NodeView;
                     NodeView childView = edge.input.node as NodeView;
                     tree.AddChild(parentView.node, childView.node);
+                });
+            }
+
+            if (graphViewChange.movedElements != null)
+            {
+                nodes.ForEach((n) =>
+                {
+                    NodeView view = n as NodeView;
+                    view.SortChildren();
                 });
             }
             return graphViewChange;
@@ -143,6 +160,15 @@ namespace Assets.Editor
             NodeView nodeView = new NodeView(node);
             nodeView.OnNodeSelected = OnNodeSelected;
             AddElement(nodeView);
+        }
+
+        public void UpdateNodeState()
+        {
+            nodes.ForEach(n =>
+            {
+                NodeView view = n as NodeView;
+                view.UpdateState();
+            });
         }
     }
 }

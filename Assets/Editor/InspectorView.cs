@@ -22,7 +22,11 @@ namespace Assets.Editor
 
             UnityEngine.Object.DestroyImmediate(editor);
             editor = UnityEditor.Editor.CreateEditor(node.node);
-            IMGUIContainer container = new IMGUIContainer(() => { editor.OnInspectorGUI();});
+            IMGUIContainer container = new IMGUIContainer(() =>
+            {
+                if(editor.target)
+                    editor.OnInspectorGUI();
+            });
             Add(container);
         }
     }
